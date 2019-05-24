@@ -11,15 +11,15 @@ open class ProxyServer: NSObject, TunnelDelegate {
     typealias TunnelArray = [Tunnel]
 
     /// The port of proxy server.
-    open let port: Port
+    public let port: Port
 
     /// The address of proxy server.
-    open let address: IPAddress?
+    public let address: IPAddress?
 
     /// The type of the proxy server.
     ///
     /// This can be set to anything describing the proxy server.
-    open let type: String
+    public let type: String
 
     /// The description of proxy server.
     open override var description: String {
@@ -97,7 +97,7 @@ open class ProxyServer: NSObject, TunnelDelegate {
      */
     func tunnelDidClose(_ tunnel: Tunnel) {
         observer?.signal(.tunnelClosed(tunnel, onServer: self))
-        guard let index = tunnels.index(of: tunnel) else {
+        guard let index = tunnels.firstIndex(of: tunnel) else {
             // things went strange
             return
         }

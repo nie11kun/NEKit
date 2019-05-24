@@ -106,6 +106,8 @@ public struct UInt128 {
 // MARK: - FixedWidthInteger Conformance
 
 extension UInt128 : FixedWidthInteger {
+    public static var bitWidth : Int { return 128 }
+
     // MARK: Instance Properties
     
     public var nonzeroBitCount: Int {
@@ -435,7 +437,7 @@ extension UInt128 : FixedWidthInteger {
 extension UInt128 : BinaryInteger {
     // MARK: Instance Properties
     
-    public static var bitWidth : Int { return 128 }
+    public var bitWidth : Int { return 128 }
     
     
     // MARK: Instance Methods
@@ -597,8 +599,9 @@ extension UInt128 : UnsignedInteger {}
 // MARK: - Hashable Conformance
 
 extension UInt128 : Hashable {
-    public var hashValue: Int {
-        return self.value.lowerBits.hashValue ^ self.value.upperBits.hashValue
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(self.value.lowerBits)
+        hasher.combine(self.value.upperBits)
     }
 }
 

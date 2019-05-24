@@ -1,6 +1,6 @@
 import Foundation
 
-public class IPAddress: CustomStringConvertible, Hashable, Comparable {
+public class IPAddress: CustomStringConvertible, Comparable {
     public enum Family {
         case IPv4, IPv6
     }
@@ -104,17 +104,6 @@ public class IPAddress: CustomStringConvertible, Hashable, Comparable {
         }
     }
 
-    public var hashValue: Int {
-        switch address {
-        case .IPv4(let addr):
-            return addr.s_addr.hashValue
-        case .IPv6(var addr):
-            return withUnsafeBytes(of: &addr) {
-                return $0.load(as: Int.self) ^ $0.load(fromByteOffset: MemoryLayout<Int>.size, as: Int.self)
-            }
-        }
-    }
-
     public var description: String {
         return presentation
     }
@@ -181,9 +170,10 @@ public func < (lhs: IPAddress, rhs: IPAddress) -> Bool {
     case (.IPv4(let addrl), .IPv4(let addrr)):
         return addrl.s_addr.byteSwapped < addrr.s_addr.byteSwapped
     case (.IPv6(var addrl), .IPv6(var addrr)):
+        let ms = MemoryLayout.size(ofValue: addrl)
         return (withUnsafeBytes(of: &addrl) { ptrl in
             withUnsafeBytes(of: &addrr) { ptrr in
-                return memcmp(ptrl.baseAddress!, ptrr.baseAddress!, MemoryLayout.size(ofValue: addrl))
+                return memcmp(ptrl.baseAddress!, ptrr.baseAddress!, ms)
             }
         }) < 0
     case (.IPv4, .IPv6):
@@ -201,5 +191,18 @@ public func == (lhs: IPAddress.Address, rhs: IPAddress.Address) -> Bool {
         return addrl.__u6_addr.__u6_addr32 == addrr.__u6_addr.__u6_addr32
     default:
         return false
+    }
+}
+
+extension IPAddress: Hashable {
+    public func hash(into hasher: inout Hasher) {
+        switch address {
+        case .IPv4(let addr):
+            return hasher.combine(addr.s_addr.hashValue)
+        case .IPv6(var addr):
+            return withUnsafeBytes(of: &addr) {
+                return hasher.combine(bytes: $0)
+            }
+        }
     }
 }

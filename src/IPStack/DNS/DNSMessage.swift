@@ -173,13 +173,10 @@ open class DNSMessage {
     }
 
     func setPayloadWithData(_ data: Data, at: Int, length: Int? = nil, from: Int = 0) {
-        var length = length
-        if length == nil {
-            length = data.count - from
-        }
+        let length = length ?? data.count - from
 
-        payload.withUnsafeMutableBytes {
-            data.copyBytes(to: $0+at, from: from..<from+length!)
+        payload.withUnsafeMutableBytes { ptr in
+            data.copyBytes(to: ptr.baseAddress!.advanced(by: at).assumingMemoryBound(to: UInt8.self), from: from..<from+length)
         }
     }
 
@@ -229,9 +226,9 @@ open class DNSMessage {
 }
 
 open class DNSQuery {
-    open let name: String
-    open let type: DNSType
-    open let klass: DNSClass
+    public let name: String
+    public let type: DNSType
+    public let klass: DNSClass
     let nameBytesLength: Int
 
     init(name: String, type: DNSType = .a, klass: DNSClass = .internet) {
@@ -267,12 +264,12 @@ open class DNSQuery {
 }
 
 open class DNSResource {
-    open let name: String
-    open let type: DNSType
-    open let klass: DNSClass
-    open let TTL: UInt32
+    public let name: String
+    public let type: DNSType
+    public let klass: DNSClass
+    public let TTL: UInt32
     let dataLength: UInt16
-    open let data: Data
+    public let data: Data
 
     let nameBytesLength: Int
 
@@ -335,17 +332,13 @@ class DNSNameConverter {
                 // invalid domain name
                 return false
             }
-            data.withUnsafeMutableBytes { (ptr: UnsafeMutablePointer<UInt8>) in
-                ptr.advanced(by: position).pointee = UInt8(len)
-            }
+            data[position] = UInt8(len)
             position += 1
 
             data.replaceSubrange(position..<position+len, with: label.data(using: .utf8)!)
             position += len
         }
-        data.withUnsafeMutableBytes { (ptr: UnsafeMutablePointer<UInt8>) in
-            ptr.advanced(by: position).pointee = 0
-        }
+        data[position] = 0
         return true
     }
 

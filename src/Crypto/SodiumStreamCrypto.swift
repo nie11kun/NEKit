@@ -6,9 +6,9 @@ open class SodiumStreamCrypto: StreamCryptoProtocol {
         case chacha20, salsa20
     }
 
-    open let key: Data
-    open let iv: Data
-    open let algorithm: Alogrithm
+    public let key: Data
+    public let iv: Data
+    public let algorithm: Alogrithm
 
     var counter = 0
 
@@ -38,19 +38,21 @@ open class SodiumStreamCrypto: StreamCryptoProtocol {
 
         switch algorithm {
         case .chacha20:
+            let c = UInt64(outputData.count)
             _ = outputData.withUnsafeMutableBytes { outputPtr in
                 iv.withUnsafeBytes { ivPtr in
                     key.withUnsafeBytes { keyPtr in
-                        crypto_stream_chacha20_xor_ic(outputPtr, outputPtr, UInt64(outputData.count), ivPtr, UInt64(counter/blockSize), keyPtr)
+                        crypto_stream_chacha20_xor_ic(outputPtr.bindMemory(to: UInt8.self).baseAddress!, outputPtr.bindMemory(to: UInt8.self).baseAddress!, c, ivPtr.bindMemory(to: UInt8.self).baseAddress!, UInt64(counter/blockSize), keyPtr.bindMemory(to: UInt8.self).baseAddress!)
                     }
                 }
             }
 
         case .salsa20:
+            let c = UInt64(outputData.count)
             _ = outputData.withUnsafeMutableBytes { outputPtr in
                 iv.withUnsafeBytes { ivPtr in
                     key.withUnsafeBytes { keyPtr in
-                        crypto_stream_salsa20_xor_ic(outputPtr, outputPtr, UInt64(outputData.count), ivPtr, UInt64(counter/blockSize), keyPtr)
+                        crypto_stream_salsa20_xor_ic(outputPtr.bindMemory(to: UInt8.self).baseAddress!, outputPtr.bindMemory(to: UInt8.self).baseAddress!, c, ivPtr.bindMemory(to: UInt8.self).baseAddress!, UInt64(counter/blockSize), keyPtr.bindMemory(to: UInt8.self).baseAddress!)
                     }
                 }
             }
@@ -61,9 +63,7 @@ open class SodiumStreamCrypto: StreamCryptoProtocol {
         if padding == 0 {
             data = outputData
         } else {
-            data.withUnsafeMutableBytes {
-                outputData.copyBytes(to: $0, from: padding..<outputData.count)
-            }
+            data = outputData.subdata(in: padding..<outputData.count)
         }
     }
 }

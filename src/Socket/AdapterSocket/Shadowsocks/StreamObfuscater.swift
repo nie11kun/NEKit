@@ -52,10 +52,8 @@ extension ShadowsocksAdapter {
                 let hostLength = session.host.utf8.count
                 let length = 1 + 1 + hostLength + 2 + data.count
                 var response = Data(count: length)
-                response.withUnsafeMutableBytes { (pointer: UnsafeMutablePointer<UInt8>) in
-                    pointer.pointee = 3
-                    pointer.successor().pointee = UInt8(hostLength)
-                }
+                response[0] = 3
+                response[1] = UInt8(hostLength)
                 response.replaceSubrange(2..<2+hostLength, with: session.host.utf8)
                 var beport = UInt16(session.port).bigEndian
                 withUnsafeBytes(of: &beport) {
@@ -144,16 +142,17 @@ extension ShadowsocksAdapter {
                     var kc = Data(count: writeIV!.count + MemoryLayout.size(ofValue: count))
                     kc.replaceSubrange(0..<writeIV!.count, with: writeIV!)
                     var c = count.bigEndian
+                    let ms = MemoryLayout.size(ofValue: c)
                     withUnsafeBytes(of: &c) {
-                        kc.replaceSubrange(writeIV!.count..<writeIV!.count+MemoryLayout.size(ofValue: c), with: $0)
-                    }
-
-                    data.withUnsafeRawPointer {
-                        outputData.replaceSubrange(outputOffset+2..<outputOffset+12, with: HMAC.final(value: $0.advanced(by: dataOffset), length: blockLength, algorithm: .SHA1, key: kc).subdata(in: 0..<10))
+                        kc.replaceSubrange(writeIV!.count..<writeIV!.count+ms, with: $0)
                     }
 
                     data.withUnsafeBytes {
-                        outputData.replaceSubrange(outputOffset+12..<outputOffset+12+blockLength, with: UnsafeBufferPointer(start: $0.advanced(by: dataOffset), count: blockLength))
+                        outputData.replaceSubrange(outputOffset+2..<outputOffset+12, with: HMAC.final(value: $0.baseAddress!.advanced(by: dataOffset), length: blockLength, algorithm: .SHA1, key: kc).subdata(in: 0..<10))
+                    }
+
+                    data.withUnsafeBytes {
+                        outputData.replaceSubrange(outputOffset+12..<outputOffset+12+blockLength, with: $0.baseAddress!.advanced(by: dataOffset), count: blockLength)
                     }
 
                     count += 1
